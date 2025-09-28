@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: aireporting
+      POSTGRES_USER: aireport
+      POSTGRES_PASSWORD: aireport
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aireporting
+      SPRING_DATASOURCE_USERNAME: aireport
+      SPRING_DATASOURCE_PASSWORD: aireport
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
