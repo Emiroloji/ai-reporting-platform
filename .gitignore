@@ -1,0 +1,18 @@
+# Java
+/backend/target/
+/backend/.idea/
+/backend/.env
+
+# Node
+/frontend/node_modules/
+/frontend/.env
+/frontend/dist/
+/frontend/build/
+
+/docker/*.env
+
+# Mac
+.DS_Store
+
+# Logs
+*.log
