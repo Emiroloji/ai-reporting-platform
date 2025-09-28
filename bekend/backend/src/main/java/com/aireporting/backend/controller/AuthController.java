@@ -36,4 +36,10 @@ public class AuthController {
         RefreshTokenResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/register-admin")
+    public ResponseEntity<User> registerAdmin(@RequestBody RegisterRequest request) {
+        User user = userService.registerAdmin(request);
+        return ResponseEntity.ok(user);
+    }
 }

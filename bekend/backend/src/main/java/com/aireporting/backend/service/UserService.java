@@ -24,6 +24,22 @@ public class UserService {
                 .lastName(request.getLastName())
                 .role("USER")
                 .isActive(true)
+                .credits(100) // Yeni kullanıcıya başlangıç kredisi
+                .build();
+        return userRepository.save(user);
+    }
+
+    public User registerAdmin(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already registered!");
+        }
+        User user = User.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .role("ADMIN")
+                .isActive(true)
                 .build();
         return userRepository.save(user);
     }

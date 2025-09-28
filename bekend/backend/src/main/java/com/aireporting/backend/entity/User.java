@@ -41,6 +41,9 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "credits")
+    private Integer credits ;
+
 
 
 }
