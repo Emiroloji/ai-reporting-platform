@@ -1,7 +1,8 @@
 package com.aireporting.backend.controller;
 
-import com.aireporting.backend.service.AIAnalysisService;
+import com.aireporting.backend.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,16 +11,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AIController {
 
-    private final AIAnalysisService aiAnalysisService;
+    private final RabbitTemplate rabbitTemplate;
 
-    // DosyaId ile analiz endpointi
     @PostMapping("/{fileId}/analyze")
     public ResponseEntity<?> analyzeFile(@PathVariable Long fileId) {
-        try {
-            String resultJson = aiAnalysisService.sendFileToPythonAI(fileId);
-            return ResponseEntity.ok(resultJson);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("AI analiz hatası: " + e.getMessage());
-        }
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ANALYSIS_QUEUE, fileId);
+        return ResponseEntity.accepted().body("Analiz talebiniz alındı ve işleme konuldu.");
     }
 }

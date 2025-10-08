@@ -4,94 +4,92 @@ import com.aireporting.backend.entity.UploadedFile;
 import com.aireporting.backend.entity.User;
 import com.aireporting.backend.repository.UploadedFileRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.FileSystemResource;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class FileService {
-    private final UploadedFileRepository uploadedFileRepository;
 
-    // Yükleme klasörü (proje kök dizininde 'uploads' klasörü olacak)
-    private final String uploadDir = "uploads/";
+    private final UploadedFileRepository uploadedFileRepository;
+    private final S3Client s3Client;
+
+    @Value("${aws.s3.bucket-name}")
+    private String bucketName;
 
     public UploadedFile uploadFile(User user, MultipartFile file) throws IOException {
-        // 1) Proje kök dizinini belirle
-        String rootPath = System.getProperty("user.dir"); // Her zaman uygulamanın ana dizini!
-        String uploadDir = rootPath + File.separator + "uploads";
+        String uniqueFileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
 
-        // 2) uploads klasörü yoksa oluştur
-        File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(uniqueFileName)
+                .contentType(file.getContentType())
+                .build();
 
-        // 3) Benzersiz dosya adı
-        String uniqueName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        String filePath = uploadDir + File.separator + uniqueName;
+        s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
-        // 4) Dosyayı kaydet
-        file.transferTo(new File(filePath));
-
-        // 5) Veritabanına kaydet
         UploadedFile uploadedFile = UploadedFile.builder()
                 .user(user)
                 .fileName(file.getOriginalFilename())
                 .fileType(file.getContentType())
                 .fileSize(file.getSize())
-                .storagePath(filePath)
+                .storagePath(uniqueFileName)
                 .build();
 
         return uploadedFileRepository.save(uploadedFile);
     }
 
-
     public boolean deleteFile(User user, Long fileId) {
         UploadedFile file = uploadedFileRepository.findById(fileId)
                 .orElseThrow(() -> new RuntimeException("Dosya bulunamadı!"));
 
-        // Sadece kendi dosyanı silebilirsin
         if (!file.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("Bu dosyayı silmeye yetkiniz yok!");
         }
 
-        // Önce dosya sisteminden sil
-        File physicalFile = new File(file.getStoragePath());
-        boolean deleted = true;
-        if (physicalFile.exists()) {
-            deleted = physicalFile.delete();
-        }
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(file.getStoragePath())
+                .build();
 
-        // Veritabanından sil
+        s3Client.deleteObject(deleteObjectRequest);
         uploadedFileRepository.delete(file);
-
-        return deleted;
+        return true;
     }
 
     public ResponseEntity<Resource> downloadFile(User user, Long fileId) {
         UploadedFile file = uploadedFileRepository.findById(fileId)
                 .orElseThrow(() -> new RuntimeException("Dosya bulunamadı!"));
 
-        // Sadece kendi dosyanı indirebilirsin
         if (!file.getUser().getId().equals(user.getId())) {
             throw new RuntimeException("Bu dosyayı indirmeye yetkiniz yok!");
         }
 
-        FileSystemResource resource = new FileSystemResource(file.getStoragePath());
-        if (!resource.exists()) {
-            throw new RuntimeException("Fiziksel dosya bulunamadı!");
-        }
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(file.getStoragePath())
+                .build();
+
+        InputStreamResource resource = new InputStreamResource(s3Client.getObject(getObjectRequest));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFileName() + "\"")
+                .contentType(MediaType.parseMediaType(file.getFileType()))
                 .contentLength(file.getFileSize())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
     }
 }
