@@ -7,6 +7,7 @@ import com.aireporting.backend.repository.UserRepository;
 import com.aireporting.backend.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +42,7 @@ public class FileController {
 
     // Kendi yüklediği dosyaları listele
     @GetMapping("/my")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<UploadedFile>> listMyFiles(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
