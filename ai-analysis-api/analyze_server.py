@@ -8,20 +8,30 @@ import io
 
 app = FastAPI()
 
-def clean_json(obj):
+def robust_json_converter(obj):
+    """
+    Her türlü Pandas/NumPy nesnesini JSON'a güvenli bir şekilde çevirir.
+    """
+    if pd.isna(obj):
+        return None
+    if isinstance(obj, (np.integer, np.int64)):
+        return int(obj)
+    if isinstance(obj, (np.floating, np.float64)):
+        return float(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    if isinstance(obj, (list, tuple, np.ndarray)):
+        return [robust_json_converter(item) for item in obj]
     if isinstance(obj, dict):
-        return {k: clean_json(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [clean_json(v) for v in obj]
-    elif isinstance(obj, float):
-        if np.isnan(obj) or np.isinf(obj):
-            return None
-        else:
-            return obj
-    elif isinstance(obj, (np.integer, np.floating, np.bool_)):
-        return obj.item()
-    else:
+        return {str(k): robust_json_converter(v) for k, v in obj.items()}
+    try:
+        # Diğer tüm tipler için basit bir deneme
+        json.dumps(obj)
         return obj
+    except (TypeError, OverflowError):
+        return str(obj)
 
 @app.post("/analyze")
 async def analyze(
@@ -31,47 +41,60 @@ async def analyze(
 ):
     ext = file.filename.lower().split('.')[-1] if file.filename else ''
     df = None
+    
+    print(f"'{file.filename}' dosyası için analiz başlıyor...")
 
     try:
-        # Gelen dosyanın tüm içeriğini byte olarak belleğe oku
         file_content = await file.read()
-
         if ext in ['xlsx', 'xls']:
-            # Excel dosyaları için read_excel kullan
             df = pd.read_excel(io.BytesIO(file_content))
         elif ext == 'csv':
-            # CSV dosyaları için read_csv kullan
             try:
                 df = pd.read_csv(io.StringIO(file_content.decode('utf-8')))
             except UnicodeDecodeError:
-                # utf-8 başarısız olursa latin-1 dene
                 df = pd.read_csv(io.StringIO(file_content.decode('latin-1')))
         else:
-            # Desteklenmeyen dosya tipleri için hata fırlat
-            raise HTTPException(status_code=400, detail=f"Desteklenmeyen dosya tipi: .{ext}")
-
+            raise HTTPException(status_code=400, detail=f"Desteklenmeyen dosya tipi: '{ext}'.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Dosya okunurken bir hata oluştu: {str(e)}")
+        print(f"HATA: Dosya okunamadı. Detay: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Dosya okunurken hata oluştu: {str(e)}")
 
     if df is None or df.empty:
         raise HTTPException(status_code=400, detail="Dosya boş veya okunamadı.")
+    
+    df.dropna(how='all', inplace=True)
+    df.dropna(axis=1, how='all', inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    df.columns = df.columns.astype(str).str.strip()
 
-    # Kolonları temizle (istenmeyen baştaki/sondaki boşluklar vb.)
-    df.columns = df.columns.str.strip()
-
-    if mapping_json:
+    if mapping_json and mapping_json.strip():
         try:
             mapping = json.loads(mapping_json)
-            df = df.rename(columns={k: v for k, v in mapping.items() if k in df.columns})
+            df.rename(columns={k: v for k, v in mapping.items() if k in df.columns}, inplace=True)
         except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Geçersiz mapping_json formatı.")
+            pass
+    
+    print("Dosya başarıyla DataFrame'e dönüştürüldü. Sonuçlar hazırlanıyor...")
+    
+    try:
+        # describe() sonucunu alıp elle JSON'a güvenli hale getiriyoruz.
+        describe_df = df.describe(include='all').fillna(np.nan).replace([np.inf, -np.inf], np.nan)
+        describe_dict = robust_json_converter(describe_df.to_dict())
 
-    df = df.dropna(how='all').dropna(axis=1, how='all').reset_index(drop=True)
+        # head() sonucunu alıp elle JSON'a güvenli hale getiriyoruz.
+        data_df = df.head(100).fillna(np.nan).replace([np.inf, -np.inf], np.nan)
+        data_list = robust_json_converter(data_df.to_dict(orient="records"))
 
-    result = {
-        "row_count": len(df),
-        "columns": list(df.columns),
-        "describe": clean_json(df.describe(include='all').to_dict(orient='index')),
-        "data": clean_json(df.head(100).to_dict(orient="records"))
-    }
-    return result
+        result = {
+            "row_count": len(df),
+            "columns": list(df.columns),
+            "describe": describe_dict,
+            "data": data_list
+        }
+        
+        print("Analiz sonucu başarıyla oluşturuldu. Gönderiliyor...")
+        return result
+
+    except Exception as e:
+        print(f"HATA: Sonuçlar işlenemedi. Detay: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Sonuçlar JSON formatına çevrilirken bir hata oluştu: {str(e)}")

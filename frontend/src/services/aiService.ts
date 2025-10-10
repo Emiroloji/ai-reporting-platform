@@ -12,6 +12,13 @@ export interface AnalysisRequest {
   completedAt: string | null;
 }
 
+export interface AnalysisResult {
+  id: number;
+  resultType: string;
+  resultData: string; // JSON verisi string olarak gelecek
+  createdAt: string;
+}
+
 
 // Backend'in /api/ai/{fileId}/analyze endpoint'ini çağıran fonksiyon.
 export const startAnalysis = async (fileId: number): Promise<string> => {
@@ -36,5 +43,15 @@ export const getAnalysisHistory = async (): Promise<AnalysisRequest[]> => {
   } catch (error: any) {
     console.error('Analiz geçmişi getirilirken hata:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Analiz geçmişi getirilemedi.');
+  }
+};
+
+export const getAnalysisResult = async (requestId: number): Promise<AnalysisResult> => {
+  try {
+    const response = await api.get(`/api/ai/result/${requestId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Analiz sonucu getirilirken hata:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Analiz sonucu getirilemedi.');
   }
 };

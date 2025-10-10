@@ -1,11 +1,11 @@
 // src/pages/AnalysisHistoryPage.tsx
 
 import React, { useEffect, useState } from 'react';
-import { Layout, Typography, Table, Tag, message, Breadcrumb } from 'antd';
+import { Layout, Typography, Table, Tag, message, Breadcrumb, Modal, Spin, Button, Empty } from 'antd'; // Empty eklendi
 import { Link } from 'react-router-dom';
 import { HomeOutlined, HistoryOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { getAnalysisHistory, AnalysisRequest } from '../services/aiService';
+import { getAnalysisHistory, AnalysisRequest, getAnalysisResult, AnalysisResult } from '../services/aiService';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -13,6 +13,10 @@ const { Title } = Typography;
 const AnalysisHistoryPage: React.FC = () => {
   const [history, setHistory] = useState<AnalysisRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<AnalysisResult | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -28,6 +32,20 @@ const AnalysisHistoryPage: React.FC = () => {
     };
     fetchHistory();
   }, []);
+
+  const handleViewResult = async (requestId: number) => {
+    setIsModalOpen(true);
+    setModalLoading(true);
+    try {
+      const result = await getAnalysisResult(requestId);
+      setModalContent(result);
+    } catch (error: any) {
+      message.error(error.message);
+      setIsModalOpen(false);
+    } finally {
+      setModalLoading(false);
+    }
+  };
 
   const getStatusTag = (status: string) => {
     switch (status) {
@@ -66,7 +84,11 @@ const AnalysisHistoryPage: React.FC = () => {
       title: 'İşlemler',
       key: 'action',
       render: (_, record) => (
-        record.status === 'COMPLETED' ? <a>Sonucu Görüntüle</a> : null
+        record.status === 'COMPLETED' ? (
+          <Button type="link" onClick={() => handleViewResult(record.id)}>
+            Sonucu Görüntüle
+          </Button>
+        ) : null
       ),
     },
   ];
@@ -92,6 +114,31 @@ const AnalysisHistoryPage: React.FC = () => {
           />
         </div>
       </Content>
+      
+      <Modal 
+        title="Analiz Sonucu" 
+        open={isModalOpen} 
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+        width={800}
+      >
+        {modalLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>
+            <Spin size="large" />
+          </div>
+        ) : (
+          // *** DÜZELTİLEN KISIM ***
+          // modalContent.resultData'nın dolu olup olmadığını kontrol ediyoruz.
+          (modalContent && modalContent.resultData) ? (
+            <pre style={{ background: '#f6f8fa', padding: '16px', borderRadius: '4px', whiteSpace: 'pre-wrap', maxHeight: '60vh', overflow: 'auto' }}>
+              {JSON.stringify(JSON.parse(modalContent.resultData), null, 2)}
+            </pre>
+          ) : (
+            // Eğer resultData boş ise, bir uyarı mesajı gösteriyoruz.
+            <Empty description="Bu analiz için görüntülenecek bir sonuç bulunamadı." />
+          )
+        )}
+      </Modal>
     </Layout>
   );
 };
