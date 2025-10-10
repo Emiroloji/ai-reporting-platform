@@ -1,10 +1,22 @@
+// src/main/java/com/aireporting/backend/controller/AIController.java
+
 package com.aireporting.backend.controller;
 
 import com.aireporting.backend.config.RabbitMQConfig;
+import com.aireporting.backend.dto.AiRequestDTO;
+import com.aireporting.backend.entity.AiRequest;
+import com.aireporting.backend.entity.User;
+import com.aireporting.backend.repository.AiRequestRepository;
+import com.aireporting.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -12,10 +24,29 @@ import org.springframework.web.bind.annotation.*;
 public class AIController {
 
     private final RabbitTemplate rabbitTemplate;
+    private final AiRequestRepository aiRequestRepository; // Yeni repository
+    private final UserRepository userRepository; // Yeni repository
 
     @PostMapping("/{fileId}/analyze")
     public ResponseEntity<?> analyzeFile(@PathVariable Long fileId) {
         rabbitTemplate.convertAndSend(RabbitMQConfig.ANALYSIS_QUEUE, fileId);
         return ResponseEntity.accepted().body("Analiz talebiniz alındı ve işleme konuldu.");
+    }
+
+    // YENİ EKLENEN ENDPOINT
+    @GetMapping("/history")
+    public ResponseEntity<List<AiRequestDTO>> getAnalysisHistory(Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String email = userDetails.getUsername();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<AiRequest> requests = aiRequestRepository.findByUserOrderByCreatedAtDesc(user);
+
+        List<AiRequestDTO> dtos = requests.stream()
+                .map(AiRequestDTO::new)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
 }

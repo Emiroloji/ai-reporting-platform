@@ -2,18 +2,26 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Sayfalarımızı import ediyoruz
 import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import ProtectedRoute from './components/ProtectedRoute';
 import RegisterPage from './pages/RegisterPage';
-import FileDetailPage from './pages/FileDetailPage'; // Yeni sayfayı import et
+import DashboardPage from './pages/DashboardPage';
+import FileDetailPage from './pages/FileDetailPage';
+import AnalysisHistoryPage from './pages/AnalysisHistoryPage'; // History sayfasını import ediyoruz
+
+// Korumalı rotamız için component'i import ediyoruz
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Herkese açık rotalar */}
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} /> 
+        <Route path="/register" element={<RegisterPage />} />
+        
+        {/* Korumalı (sadece giriş yapmış kullanıcıların erişebileceği) rotalar */}
         <Route 
           path="/dashboard" 
           element={
@@ -22,15 +30,25 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        {/* YENİ EKLENEN ROTA */}
         <Route 
-          path="/files/:fileId" // :fileId dinamik bir parametre olduğunu belirtir.
+          path="/files/:fileId"
           element={
             <ProtectedRoute>
               <FileDetailPage />
             </ProtectedRoute>
           }
         />
+        {/* EKSİK OLAN ROTA BURASI */}
+        <Route 
+          path="/history" 
+          element={
+            <ProtectedRoute>
+              <AnalysisHistoryPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Ana dizine gidilirse otomatik olarak login sayfasına yönlendir */}
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </Router>

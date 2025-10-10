@@ -2,6 +2,17 @@
 
 import api from './api';
 
+// Backend'in AiRequestDTO'suna karşılık gelen TypeScript interface'i
+export interface AnalysisRequest {
+  id: number;
+  fileName: string;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  errorMessage: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+
 // Backend'in /api/ai/{fileId}/analyze endpoint'ini çağıran fonksiyon.
 export const startAnalysis = async (fileId: number): Promise<string> => {
   try {
@@ -12,5 +23,18 @@ export const startAnalysis = async (fileId: number): Promise<string> => {
   } catch (error: any) { // Hatalı satır buradaydı, şimdi düzeltildi.
     console.error('Analiz başlatılırken hata:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Analiz başlatılamadı.');
+  }
+};
+
+
+
+// Analiz geçmişini getiren yeni fonksiyon
+export const getAnalysisHistory = async (): Promise<AnalysisRequest[]> => {
+  try {
+    const response = await api.get('/api/ai/history');
+    return response.data;
+  } catch (error: any) {
+    console.error('Analiz geçmişi getirilirken hata:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Analiz geçmişi getirilemedi.');
   }
 };

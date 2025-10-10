@@ -1,11 +1,11 @@
 // src/pages/DashboardPage.tsx
 
-import React, { useState } from 'react'; // useState import ediyoruz
-import { Layout, Typography, Button, Divider } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import { LogoutOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Layout, Typography, Button, Divider, Space } from 'antd';
+import { useNavigate, Link } from 'react-router-dom';
+import { LogoutOutlined, HistoryOutlined } from '@ant-design/icons';
 import FileList from '../components/FileList';
-import FileUpload from '../components/FileUpload'; // Yeni component'i import ediyoruz
+import FileUpload from '../components/FileUpload';
 
 const { Header, Content } = Layout;
 const { Title, Paragraph } = Typography;
@@ -13,22 +13,20 @@ const { Title, Paragraph } = Typography;
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   
-  // *** YENİ EKLENEN KISIM BAŞLANGICI ***
-  // Bu state, FileList component'inin ne zaman yeniden veri çekmesi gerektiğini
-  // anlamasını sağlayacak bir "tetikleyici" görevi görecek.
+  // Bu state, FileUpload başarılı olduğunda FileList'in yenilenmesini tetikler.
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Bu fonksiyon, dosya yükleme başarılı olduğunda çağrılacak.
+  // Bu fonksiyon, FileUpload component'inden çağrılır.
   const handleUploadSuccess = () => {
-    // refreshKey'in değerini değiştirerek FileList'in yeniden render olmasını
-    // ve verileri tekrar çekmesini tetikliyoruz.
+    // refreshKey'i güncelleyerek FileList'in yeniden veri çekmesini sağlarız.
     setRefreshKey(prevKey => prevKey + 1);
   };
-  // *** YENİ EKLENEN KISIM SONU ***
 
   const handleLogout = () => {
+    // Kullanıcı bilgilerini tarayıcı hafızasından temizle
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    // Kullanıcıyı login sayfasına yönlendir
     navigate('/login', { replace: true });
   };
 
@@ -43,13 +41,22 @@ const DashboardPage: React.FC = () => {
         }}
       >
         <Title level={4} style={{ margin: 0 }}>AI Raporlama Platformu</Title>
-        <Button 
-          type="primary" 
-          icon={<LogoutOutlined />} 
-          onClick={handleLogout}
-        >
-          Çıkış Yap
-        </Button>
+        <Space>
+          {/* Analiz Geçmişi Sayfasına Yönlendirme Butonu/Linki */}
+          <Link to="/history">
+            <Button icon={<HistoryOutlined />}>
+              Analiz Geçmişi
+            </Button>
+          </Link>
+          {/* Çıkış Yap Butonu */}
+          <Button 
+            type="primary" 
+            icon={<LogoutOutlined />} 
+            onClick={handleLogout}
+          >
+            Çıkış Yap
+          </Button>
+        </Space>
       </Header>
       <Content style={{ padding: '24px 50px' }}>
         <div style={{ background: '#fff', padding: 24, minHeight: 280, borderRadius: '8px' }}>
@@ -59,12 +66,12 @@ const DashboardPage: React.FC = () => {
             Analiz etmek için yeni bir dosya yükleyin veya daha önce yüklediğiniz dosyalar üzerinden işlem yapın.
           </Paragraph>
           
-          {/* FileUpload component'ini buraya ekliyoruz ve prop olarak fonksiyonumuzu geçiyoruz. */}
+          {/* Dosya Yükleme Component'i */}
           <FileUpload onUploadSuccess={handleUploadSuccess} />
           
           <Divider />
 
-          {/* FileList'e key prop'unu ekliyoruz. Bu key değiştiğinde component yeniden render olur. */}
+          {/* Dosya Listesi Component'i. 'key' prop'u değiştiğinde yeniden render olur. */}
           <FileList key={refreshKey} />
 
         </div>
