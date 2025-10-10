@@ -1,7 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, Form
+# ai-analysis-api/analyze_server.py
+
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 import pandas as pd
 import numpy as np
 import json
+import io
 
 app = FastAPI()
 
@@ -15,6 +18,8 @@ def clean_json(obj):
             return None
         else:
             return obj
+    elif isinstance(obj, (np.integer, np.floating, np.bool_)):
+        return obj.item()
     else:
         return obj
 
@@ -24,32 +29,49 @@ async def analyze(
     mapping_json: str = Form(None),
     analysis_type: str = Form("basic")
 ):
-    # Excel veya CSV dosyası aç
-    ext = file.filename.lower().split('.')[-1]
-    if ext in ['xlsx', 'xls']:
-        # Tüm dosyayı oku, başlık satırı otomatik bul
-        raw_df = pd.read_excel(file.file, header=None)
-    else:
-        raw_df = pd.read_csv(file.file, header=None)
+    ext = file.filename.lower().split('.')[-1] if file.filename else ''
+    df = None
 
-    # Başlık satırını bul (en çok dolu alanı olan satır)
-    header_row = raw_df.notna().sum(axis=1).idxmax()
-    df = pd.read_excel(file.file, header=header_row) if ext in ['xlsx', 'xls'] else pd.read_csv(file.file, header=header_row)
+    try:
+        # Gelen dosyanın tüm içeriğini byte olarak belleğe oku
+        file_content = await file.read()
 
-    # mapping_json varsa sütun adlarını değiştir
+        if ext in ['xlsx', 'xls']:
+            # Excel dosyaları için read_excel kullan
+            df = pd.read_excel(io.BytesIO(file_content))
+        elif ext == 'csv':
+            # CSV dosyaları için read_csv kullan
+            try:
+                df = pd.read_csv(io.StringIO(file_content.decode('utf-8')))
+            except UnicodeDecodeError:
+                # utf-8 başarısız olursa latin-1 dene
+                df = pd.read_csv(io.StringIO(file_content.decode('latin-1')))
+        else:
+            # Desteklenmeyen dosya tipleri için hata fırlat
+            raise HTTPException(status_code=400, detail=f"Desteklenmeyen dosya tipi: .{ext}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dosya okunurken bir hata oluştu: {str(e)}")
+
+    if df is None or df.empty:
+        raise HTTPException(status_code=400, detail="Dosya boş veya okunamadı.")
+
+    # Kolonları temizle (istenmeyen baştaki/sondaki boşluklar vb.)
+    df.columns = df.columns.str.strip()
+
     if mapping_json:
-        mapping = json.loads(mapping_json)
-        df = df.rename(columns=mapping)
-    
-    # Tamamen boş satır ve sütunları sil
-    df = df.dropna(how='all')
-    df = df.dropna(axis=1, how='all')
+        try:
+            mapping = json.loads(mapping_json)
+            df = df.rename(columns={k: v for k, v in mapping.items() if k in df.columns})
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Geçersiz mapping_json formatı.")
 
-    # Sonucu döndür
+    df = df.dropna(how='all').dropna(axis=1, how='all').reset_index(drop=True)
+
     result = {
         "row_count": len(df),
         "columns": list(df.columns),
-        "describe": clean_json(df.describe(include='all').to_dict()),
-        "data": clean_json(df.to_dict(orient="records"))
+        "describe": clean_json(df.describe(include='all').to_dict(orient='index')),
+        "data": clean_json(df.head(100).to_dict(orient="records"))
     }
     return result
