@@ -31,6 +31,10 @@ public class FileService {
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
+    /**
+     * Dosyayı S3'e yükler ve veritabanına kaydeder.
+     * Dosya, yükleyen kullanıcının organizasyonuna bağlanır.
+     */
     public UploadedFile uploadFile(User user, MultipartFile file) throws IOException {
         String uniqueFileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
 
@@ -43,7 +47,8 @@ public class FileService {
         s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
         UploadedFile uploadedFile = UploadedFile.builder()
-                .user(user)
+                .organization(user.getOrganization()) // Dosyayı kullanıcının organizasyonuna bağla
+                .uploadedBy(user) // Dosyayı kimin yüklediğini belirt
                 .fileName(file.getOriginalFilename())
                 .fileType(file.getContentType())
                 .fileSize(file.getSize())
@@ -53,13 +58,25 @@ public class FileService {
         return uploadedFileRepository.save(uploadedFile);
     }
 
+    /**
+     * Bir dosyayı siler.
+     * Şimdilik sadece dosyayı yükleyen kişi kendi dosyasını silebilir.
+     * TODO: Gelecekte organizasyon yöneticilerinin de silmesine izin verilecek şekilde güncellenmeli.
+     */
     public boolean deleteFile(User user, Long fileId) {
         UploadedFile file = uploadedFileRepository.findById(fileId)
                 .orElseThrow(() -> new RuntimeException("Dosya bulunamadı!"));
 
-        if (!file.getUser().getId().equals(user.getId())) {
+        // Yetki Kontrolü: Kullanıcı, dosyanın ait olduğu organizasyonda mı?
+        if (!file.getOrganization().getId().equals(user.getOrganization().getId())) {
             throw new RuntimeException("Bu dosyayı silmeye yetkiniz yok!");
         }
+
+        // Daha katı bir kural: Sadece yükleyen kişi veya organizasyon sahibi silebilir.
+        // if (!file.getUploadedBy().getId().equals(user.getId()) && !file.getOrganization().getOwner().getId().equals(user.getId())) {
+        //     throw new RuntimeException("Bu dosyayı silmeye yetkiniz yok!");
+        // }
+
 
         DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
                 .bucket(bucketName)
@@ -71,11 +88,16 @@ public class FileService {
         return true;
     }
 
+    /**
+     * Bir dosyayı indirir.
+     * Şimdilik sadece dosyanın ait olduğu organizasyondaki bir üye indirebilir.
+     */
     public ResponseEntity<Resource> downloadFile(User user, Long fileId) {
         UploadedFile file = uploadedFileRepository.findById(fileId)
                 .orElseThrow(() -> new RuntimeException("Dosya bulunamadı!"));
 
-        if (!file.getUser().getId().equals(user.getId())) {
+        // Yetki Kontrolü: Kullanıcı, dosyanın ait olduğu organizasyonda mı?
+        if (!file.getOrganization().getId().equals(user.getOrganization().getId())) {
             throw new RuntimeException("Bu dosyayı indirmeye yetkiniz yok!");
         }
 

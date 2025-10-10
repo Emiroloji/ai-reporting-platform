@@ -45,5 +45,11 @@ public class User {
     private Integer credits ;
 
 
+    /// ///////////////////////////////////////
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
 
 }

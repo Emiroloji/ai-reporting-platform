@@ -40,14 +40,17 @@ public class FileController {
         }
     }
 
-    // Kendi yüklediği dosyaları listele
+
+
+    // Kendi yüklediği dosyaları değil, organizasyonun dosyalarını listele
     @GetMapping("/my")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<UploadedFile>> listMyFiles(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        List<UploadedFile> files = uploadedFileRepository.findByUserOrderByUploadedAtDesc(user);
+
+        List<UploadedFile> files = uploadedFileRepository.findByOrganizationOrderByUploadedAtDesc(user.getOrganization());
+
         return ResponseEntity.ok(files);
     }
 

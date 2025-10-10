@@ -1,0 +1,19 @@
+# 1. Adım: Kodu derlemek için bir Java ve Maven içeren bir imaj kullan
+FROM maven:3.9-eclipse-temurin-21 AS build
+
+# Proje kodunu container içine kopyala
+WORKDIR /app
+COPY ./bekend/backend/pom.xml ./
+COPY ./bekend/backend/src ./src
+
+# Maven kullanarak projeyi derle ve JAR dosyasını oluştur
+RUN mvn clean package -DskipTests
+
+# 2. Adım: Sadece Java'nın çalışması için gerekli olan daha küçük bir imaj kullan
+FROM eclipse-temurin:21-jre-jammy
+
+# Derlenmiş JAR dosyasını bir önceki adımdan bu yeni imajın içine kopyala
+COPY --from=build /app/target/*.jar app.jar
+
+# Container çalıştığında hangi komutun çalışacağını belirt
+ENTRYPOINT ["java", "-jar", "app.jar"]
