@@ -9,10 +9,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import com.aireporting.backend.dto.FileResponseDTO; // Yeni DTO'muzu import ediyoruz
+import java.util.List;
+import java.util.stream.Collectors; // Stream API için import
+
 
 import java.util.List;
 
@@ -44,14 +49,20 @@ public class FileController {
 
     // Kendi yüklediği dosyaları değil, organizasyonun dosyalarını listele
     @GetMapping("/my")
-    public ResponseEntity<List<UploadedFile>> listMyFiles(Authentication authentication) {
-        String email = authentication.getName();
+    public ResponseEntity<List<FileResponseDTO>> listMyFiles(Authentication authentication) {
+        // Principal'ı (kimliği doğrulanmış kullanıcı nesnesi) alıyoruz.
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        // UserDetails'den kullanıcı adını (bizim durumumuzda e-posta) alıyoruz.
+        String email = userDetails.getUsername();
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
+        // ... (metodun geri kalanı aynı)
         List<UploadedFile> files = uploadedFileRepository.findByOrganizationOrderByUploadedAtDesc(user.getOrganization());
-
-        return ResponseEntity.ok(files);
+        List<FileResponseDTO> fileDTOs = files.stream()
+                .map(FileResponseDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(fileDTOs);
     }
 
 
