@@ -11,14 +11,20 @@ from typing import Dict, Any
 import os
 from dotenv import load_dotenv
 
-# --- API ANAHTARINI .env DOSYASINDAN YÜKLEME ---
+# --- API ANAHTARINI VE OPENROUTER URL'SİNİ .env DOSYASINDAN YÜKLEME ---
 load_dotenv()
-import openai
+from openai import OpenAI
 
-# API anahtarını ortam değişkenlerinden al
-# Bu satır, .env dosyanızdaki OPENAI_API_KEY değişkenini okur.
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+# .env dosyasındaki OPENAI_API_KEY ve OPENAI_API_BASE değişkenlerini kullanarak
+# istemciyi yapılandırır.
+try:
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("OPENAI_API_BASE"),
+    )
+except Exception as e:
+    client = None
+    print(f"Hata: OpenAI/OpenRouter istemcisi oluşturulamadı. .env dosyanızı kontrol edin. Detay: {e}")
 
 # Grafik oluşturma kütüphaneleri
 import matplotlib
@@ -28,10 +34,7 @@ import seaborn as sns
 
 app = FastAPI()
 
-# --- YARDIMCI FONKSİYONLAR (Değişiklik yok) ---
-# clean_data, get_insights, create_visualizations ve SafeJSONEncoder fonksiyonları
-# bir önceki adımdaki gibi aynı kalacak. Lütfen bu fonksiyonların kodun devamında
-# olduğunu varsayın veya bir önceki cevaptan bu kısma ekleyin.
+# --- YARDIMCI FONKSİYONLAR ---
 
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """Veriyi temizler: Boş satır/sütunları atar, başlığı bulur."""
@@ -86,9 +89,7 @@ def get_insights(df: pd.DataFrame) -> Dict[str, Any]:
 
 def create_visualizations(df: pd.DataFrame) -> Dict[str, str]:
     """Veri setine uygun grafikleri oluşturur ve base64 olarak döndürür."""
-    charts = {}
-    numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-    categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    charts = {}; numeric_cols = df.select_dtypes(include=np.number).columns.tolist(); categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
     for col in numeric_cols[:3]:
         plt.figure(figsize=(8, 5)); sns.histplot(df[col].dropna(), kde=True, bins=20)
         plt.title(f'{col} Dağılımı'); plt.xlabel(str(col)); plt.ylabel('Frekans')
@@ -111,13 +112,13 @@ class SafeJSONEncoder(json.JSONEncoder):
             return o
         return super().encode(replace_invalid(obj))
 
-
-# --- GERÇEK YAPAY ZEKA ENTEGRASYONU ---
+# --- GÜNCELLENMİŞ YAPAY ZEKA FONKSİYONU ---
 
 def execute_natural_language_query(df: pd.DataFrame, query: str) -> Dict[str, Any]:
-    """
-    Doğal dil sorgusunu OpenAI GPT modelini kullanarak Python koduna çevirir ve çalıştırır.
-    """
+    """Doğal dil sorgusunu OpenRouter üzerinden işler ve cevabı temizler."""
+    if not client:
+        return {"type": "text", "data": "OpenAI/OpenRouter istemcisi başlatılamadı. .env dosyanızı kontrol edin.", "title": "Yapılandırma Hatası"}
+
     prompt = f"""
     You are a data analysis expert. Based on the user's query, generate Python code 
     to analyze the pandas DataFrame named 'df'. The code must generate a result and store it
@@ -128,14 +129,14 @@ def execute_natural_language_query(df: pd.DataFrame, query: str) -> Dict[str, An
     - 'data': 
         - If type is 'chart', this must be a base64 encoded string of a matplotlib chart.
         - If type is 'table', this must be a JSON string of the resulting DataFrame (use to_json(orient='records')).
-        - If type is 'text', this must be a string containing the answer (e.g., "The average cost is 350.75").
+        - If type is 'text', this must be a string containing the answer.
     - 'title': A descriptive title for the result.
 
     IMPORTANT RULES:
     1. The code MUST NOT define the 'df' DataFrame. It is already provided.
     2. The final output of the code MUST be the 'result' dictionary.
     3. For charts, ensure you import necessary libraries, create a figure, save it to a BytesIO buffer, encode it to base64, and finally call plt.close().
-    4. Do not include any text, explanation or markdown formatting before or after the python code block.
+    4. ONLY output the raw Python code. Do not include any text, explanation, markdown formatting, or <think> blocks before or after the python code.
 
     DataFrame details:
     - Name: df
@@ -146,39 +147,51 @@ def execute_natural_language_query(df: pd.DataFrame, query: str) -> Dict[str, An
 
     Python Code:
     """
-
+    
     try:
-        # Gerçek OpenAI API Çağrısı
-        response = openai.Completion.create(
-            model="gpt-3.5-turbo-instruct", # Daha yeni ve maliyet etkin bir model
-            prompt=prompt,
-            max_tokens=600,  # Daha karmaşık kodlar için token limitini artırdık
-            temperature=0.0, # En tutarlı sonucu almak için
-            stop=["\n\n"] # Kod bittiğinde durmasını sağlar
+        response = client.chat.completions.create(
+            extra_headers={
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "AI Reporting Platform",
+            },
+            model="qwen/qwen-2.5-coder-32b-instruct",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.0,
+            max_tokens=1024,
         )
-        generated_code = response.choices[0].text.strip()
+        raw_response = response.choices[0].message.content.strip()
+        
+        # Gelen cevabı temizleme
+        generated_code = raw_response
+        if "```python" in generated_code:
+            # ```python bloğunun içini al
+            generated_code = generated_code.split("```python")[1].strip()
+            if "```" in generated_code:
+                 generated_code = generated_code.rsplit("```", 1)[0].strip()
+        elif "<think>" in generated_code:
+            # <think> bloğundan sonrasını al
+            generated_code = generated_code.split("</think>")[-1].strip()
+
     except Exception as e:
-        # API çağrısı başarısız olursa, hatayı kullanıcıya bildir.
         error_message = f"Yapay zeka modeline erişilirken bir hata oluştu: {str(e)}"
         return {"type": "text", "data": error_message, "title": "API Bağlantı Hatası"}
 
-    # Üretilen kodu güvenli bir ortamda çalıştır
     local_scope = {
         "df": df, "pd": pd, "np": np, 
-        "plt": plt, "sns": sns, "io": io, "base64": base64
+        "plt": plt, "sns": sns, "io": io, "base64": base64,
+        "BytesIO": io.BytesIO
     }
     try:
         exec(generated_code, globals(), local_scope)
-        # Kod çalıştıktan sonra 'result' değişkeninin dolu olup olmadığını kontrol et
         if 'result' in local_scope:
             return local_scope['result']
         else:
-            return {"type": "text", "data": "Yapay zeka bir sonuç üretemedi.", "title": "Kod Sonuç Üretmedi"}
+            return {"type": "text", "data": "Yapay zeka geçerli bir sonuç kodu üretemedi.", "title": "Kod Sonuç Üretmedi"}
     except Exception as e:
-        # Üretilen kod çalışırken bir hata olursa, hatayı bildir.
         error_message = f"Analiz kodu çalıştırılırken bir hata oluştu: {str(e)}\n\nÜretilen Kod:\n{generated_code}"
         return {"type": "text", "data": error_message, "title": "Çalıştırma Hatası"}
-
 
 # --- ANA API ENDPOINT'İ ---
 
@@ -211,9 +224,9 @@ async def analyze(file: UploadFile = File(...), query: str = Form(None)):
 
     if query and query.strip():
         if not os.getenv("OPENAI_API_KEY"):
-            result["custom_analysis"] = {"type": "text", "data": "OpenAI API anahtarı .env dosyasında bulunamadı.", "title": "Yapılandırma Hatası"}
+            result["custom_analysis"] = {"type": "text", "data": "OpenRouter API anahtarı .env dosyasında bulunamadı.", "title": "Yapılandırma Hatası"}
         else:
             custom_result = execute_natural_language_query(cleaned_df, query)
             result["custom_analysis"] = custom_result
-
+    
     return JSONResponse(content=json.loads(json.dumps(result, cls=SafeJSONEncoder)))
