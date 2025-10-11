@@ -17,15 +17,15 @@ import {
   Row,
   Statistic,
   Button,
-  Space,
-  Popover
+  Popover, // Popover'ı import ediyoruz
+  Space
 } from 'antd';
 import { HomeOutlined, HistoryOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getAnalysisHistory, AnalysisRequest, getAnalysisResult, AnalysisResult } from '../services/aiService';
 
 const { Content } = Layout;
-const { Title } = Typography;
+const { Title, Paragraph } = Typography;
 
 const AnalysisHistoryPage: React.FC = () => {
   const [history, setHistory] = useState<AnalysisRequest[]>([]);
@@ -53,7 +53,7 @@ const AnalysisHistoryPage: React.FC = () => {
   const handleViewResult = async (requestId: number) => {
     setIsModalOpen(true);
     setModalLoading(true);
-    setModalContent(null); // Önceki içeriği temizle
+    setModalContent(null);
     try {
       const result = await getAnalysisResult(requestId);
       setModalContent(result);
@@ -114,7 +114,7 @@ const AnalysisHistoryPage: React.FC = () => {
               </Button>
             )}
             {record.status === 'FAILED' && record.errorMessage && (
-                 <Popover content={record.errorMessage} title="Hata Detayı" trigger="click">
+                 <Popover content={<pre style={{maxWidth: 400, whiteSpace: 'pre-wrap'}}>{record.errorMessage}</pre>} title="Hata Detayı" trigger="click">
                     <Button type="link" danger>
                         Hata Detayı
                     </Button>
@@ -154,7 +154,7 @@ const AnalysisHistoryPage: React.FC = () => {
         onCancel={handleCloseModal}
         footer={null}
         width={1000}
-        destroyOnClose // Modal kapandığında içindeki state'leri sıfırla
+        destroyOnClose
       >
         {modalLoading ? (
           <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -162,26 +162,39 @@ const AnalysisHistoryPage: React.FC = () => {
           </div>
         ) : modalContent ? (
           <div>
+            {/* DÜZELTME: Doğal dil sorgusu sonucu varsa göster */}
+            {modalContent.custom_analysis && (
+              <Card title={modalContent.custom_analysis.title || "Özel Analiz Sonucu"} style={{marginBottom: 24}}>
+                {modalContent.custom_analysis.type === 'chart' ? (
+                  <img src={`data:image/png;base64,${modalContent.custom_analysis.data}`} alt={modalContent.custom_analysis.title} style={{ width: '100%' }} />
+                ) : (
+                  <Paragraph>{modalContent.custom_analysis.data}</Paragraph>
+                )}
+              </Card>
+            )}
+
             <Title level={4}>Genel İstatistikler</Title>
+            {/* DÜZELTME: `base_analysis` üzerinden erişim */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
               <Col span={6}>
-                <Card><Statistic title="Toplam Satır" value={modalContent.insights.general_stats.row_count} /></Card>
+                <Card><Statistic title="Toplam Satır" value={modalContent.base_analysis.insights.general_stats.row_count} /></Card>
               </Col>
               <Col span={6}>
-                <Card><Statistic title="Toplam Sütun" value={modalContent.insights.general_stats.column_count} /></Card>
+                <Card><Statistic title="Toplam Sütun" value={modalContent.base_analysis.insights.general_stats.column_count} /></Card>
               </Col>
               <Col span={6}>
-                <Card><Statistic title="Eksik Veri (Hücre)" value={modalContent.insights.general_stats.missing_cells} /></Card>
+                <Card><Statistic title="Eksik Veri (Hücre)" value={modalContent.base_analysis.insights.general_stats.missing_cells} /></Card>
               </Col>
                <Col span={6}>
-                <Card><Statistic title="Eksik Veri Oranı" value={modalContent.insights.general_stats.missing_cells_percentage.toFixed(2)} suffix="%"/></Card>
+                <Card><Statistic title="Eksik Veri Oranı" value={modalContent.base_analysis.insights.general_stats.missing_cells_percentage.toFixed(2)} suffix="%"/></Card>
               </Col>
             </Row>
 
-            <Title level={4}>Grafikler</Title>
+            <Title level={4}>Otomatik Grafikler</Title>
+            {/* DÜZELTME: `base_analysis` üzerinden erişim */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-              {Object.keys(modalContent.charts).length > 0 ? (
-                Object.entries(modalContent.charts).map(([title, base64Image]) => (
+              {Object.keys(modalContent.base_analysis.charts).length > 0 ? (
+                Object.entries(modalContent.base_analysis.charts).map(([title, base64Image]) => (
                   <Col key={title} xs={24} md={12}>
                     <Card title={title.replace(/_/g, ' ').replace(/(^\w)/, c => c.toUpperCase())}>
                       <img src={`data:image/png;base64,${base64Image}`} alt={title} style={{ width: '100%' }} />
@@ -196,11 +209,12 @@ const AnalysisHistoryPage: React.FC = () => {
             </Row>
 
             <Title level={4}>Örnek Veri</Title>
+            {/* DÜZELTME: `base_analysis` üzerinden erişim */}
             <Table
-              dataSource={modalContent.sample_data}
+              dataSource={modalContent.base_analysis.sample_data}
               columns={
-                modalContent.sample_data.length > 0
-                  ? Object.keys(modalContent.sample_data[0]).map(key => ({ title: key, dataIndex: key, key, ellipsis: true }))
+                modalContent.base_analysis.sample_data.length > 0
+                  ? Object.keys(modalContent.base_analysis.sample_data[0]).map(key => ({ title: key, dataIndex: key, key, ellipsis: true }))
                   : []
               }
               pagination={false}

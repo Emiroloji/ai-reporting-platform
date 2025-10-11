@@ -20,7 +20,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -35,10 +37,21 @@ public class AIController {
 
 
     @PostMapping("/{fileId}/analyze")
-    public ResponseEntity<?> analyzeFile(@PathVariable Long fileId) {
-        rabbitTemplate.convertAndSend(RabbitMQConfig.ANALYSIS_QUEUE, fileId);
+    public ResponseEntity<?> analyzeFile(
+            @PathVariable Long fileId,
+            @RequestBody(required = false) Map<String, String> payload // Sorguyu body'den alıyoruz
+    ) {
+        String query = (payload != null) ? payload.get("query") : null;
+
+        // RabbitMQ'ya Map olarak gönderiyoruz
+        Map<String, Object> message = new HashMap<>();
+        message.put("fileId", fileId);
+        message.put("query", query);
+
+        rabbitTemplate.convertAndSend(RabbitMQConfig.ANALYSIS_QUEUE, message);
         return ResponseEntity.accepted().body("Analiz talebiniz alındı ve işleme konuldu.");
     }
+
 
     // YENİ EKLENEN ENDPOINT
     @GetMapping("/history")

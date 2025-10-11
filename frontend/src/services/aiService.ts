@@ -2,7 +2,7 @@
 
 import api from './api';
 
-// Backend'in AiRequestDTO'suna karşılık gelen TypeScript interface'i
+// Analiz talepleri için kullanılan interface (değişiklik yok)
 export interface AnalysisRequest {
   id: number;
   fileName: string;
@@ -12,7 +12,10 @@ export interface AnalysisRequest {
   completedAt: string | null;
 }
 
-export interface AnalysisResult {
+// --- YENİ VE GÜNCELLENMİŞ INTERFACE'LER ---
+
+// Python'dan gelen temel analiz yapısı
+export interface BaseAnalysis {
   insights: {
     general_stats: {
       row_count: number;
@@ -26,23 +29,33 @@ export interface AnalysisResult {
   sample_data: any[];
 }
 
+// Python'dan gelen özel, doğal dil sorgusu sonucu yapısı
+export interface CustomAnalysis {
+    type: 'chart' | 'table' | 'text';
+    data: any;
+    title: string;
+}
 
-// Backend'in /api/ai/{fileId}/analyze endpoint'ini çağıran fonksiyon.
-export const startAnalysis = async (fileId: number): Promise<string> => {
+// Ana sonuç yapısı
+export interface AnalysisResult {
+  base_analysis: BaseAnalysis;
+  custom_analysis: CustomAnalysis | null;
+}
+
+
+// startAnalysis fonksiyonu (değişiklik yok)
+export const startAnalysis = async (fileId: number, query: string | null): Promise<string> => {
   try {
-    // Backend bu endpoint için POST metodu bekliyor.
-    const response = await api.post(`/api/ai/${fileId}/analyze`);
-    // Backend'den gelen "Analiz talebiniz alındı..." mesajını döndürüyoruz.
+    const payload = query ? { query } : {};
+    const response = await api.post(`/api/ai/${fileId}/analyze`, payload);
     return response.data;
-  } catch (error: any) { // Hatalı satır buradaydı, şimdi düzeltildi.
+  } catch (error: any) {
     console.error('Analiz başlatılırken hata:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Analiz başlatılamadı.');
   }
 };
 
-
-
-// Analiz geçmişini getiren yeni fonksiyon
+// getAnalysisHistory fonksiyonu (değişiklik yok)
 export const getAnalysisHistory = async (): Promise<AnalysisRequest[]> => {
   try {
     const response = await api.get('/api/ai/history');
@@ -53,6 +66,7 @@ export const getAnalysisHistory = async (): Promise<AnalysisRequest[]> => {
   }
 };
 
+// getAnalysisResult fonksiyonunu yeni `AnalysisResult` tipini döndürecek şekilde güncelliyoruz
 export const getAnalysisResult = async (requestId: number): Promise<AnalysisResult> => {
   try {
     const response = await api.get(`/api/ai/result/${requestId}`);

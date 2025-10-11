@@ -1,8 +1,8 @@
 // src/pages/FileDetailPage.tsx
 
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom'; // Link'i useNavigate yerine kullanacağız
-import { Layout, Typography, Spin, Alert, Table, Breadcrumb, Button, Divider, message } from 'antd';
+import { useParams, Link } from 'react-router-dom';
+import { Layout, Typography, Spin, Alert, Table, Breadcrumb, Button, Divider, message, Input } from 'antd';
 import { HomeOutlined, FileOutlined, RobotOutlined } from '@ant-design/icons';
 import { getFilePreview, FilePreview } from '../services/fileService';
 import { startAnalysis } from '../services/aiService';
@@ -17,6 +17,8 @@ const FileDetailPage: React.FC = () => {
   const [preview, setPreview] = useState<FilePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
@@ -45,8 +47,9 @@ const FileDetailPage: React.FC = () => {
     if (!fileId) return;
     setIsAnalyzing(true);
     try {
-        const responseMessage = await startAnalysis(parseInt(fileId));
-        message.success(responseMessage);
+        const responseMessage = await startAnalysis(parseInt(fileId), query);
+        message.success(responseMessage + " Analiz geçmişi sayfasından sonuçları kontrol edebilirsiniz.");
+        setQuery('');
     } catch (err: any) {
         message.error(err.message);
     } finally {
@@ -74,11 +77,11 @@ const FileDetailPage: React.FC = () => {
     title: col,
     dataIndex: index,
     key: index,
+    ellipsis: true,
   }));
   
-  // *** DÜZELTİLEN KISIM 1: dataSource'daki tip hatası giderildi ***
   const dataSource = preview?.sampleRows.map((row, rowIndex) => {
-    const rowObject: any = { key: rowIndex }; // Tipi 'any' olarak değiştirip key'i ekliyoruz
+    const rowObject: any = { key: rowIndex };
     row.forEach((cell, cellIndex) => {
         rowObject[cellIndex] = cell;
     });
@@ -88,7 +91,6 @@ const FileDetailPage: React.FC = () => {
   return (
     <Layout style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <Content style={{ padding: '24px 50px' }}>
-        {/* *** DÜZELTİLEN KISIM 2: Breadcrumb'da Link kullanıldı *** */}
         <Breadcrumb style={{ marginBottom: 16 }}>
             <Breadcrumb.Item>
                 <Link to="/dashboard">
@@ -96,34 +98,55 @@ const FileDetailPage: React.FC = () => {
                 </Link>
             </Breadcrumb.Item>
             <Breadcrumb.Item>
-                <FileOutlined /> <span>Dosya Detayı</span>
+                <FileOutlined /> <span>Dosya Detayı ve Analiz</span>
             </Breadcrumb.Item>
         </Breadcrumb>
         <div style={{ background: '#fff', padding: 24, borderRadius: '8px' }}>
-          <Title level={2}>Dosya Önizleme ve Analiz</Title>
+          <Title level={2}>Dosya Analizi</Title>
           <Paragraph>
-            Aşağıda yüklediğiniz dosyanın ilk birkaç satırını görebilirsiniz. Kolonları eşleştirdikten sonra analizi başlatın.
+            Dosyanızdaki kolonları yapay zekanın anlayabilmesi için anlamlı isimlerle eşleştirin. Ardından, neyi analiz etmek istediğinizi doğal dilde yazarak analizi başlatın.
           </Paragraph>
 
           {preview && fileId && (
             <ColumnMapping fileId={parseInt(fileId)} columns={preview.columns} />
           )}
           
-          <Title level={4} style={{marginTop: 24}}>Veri Önizleme</Title>
-          <Table columns={columns} dataSource={dataSource} pagination={false} bordered style={{marginBottom: '24px'}}/>
+          <Divider />
+
+          <Title level={4}>Doğal Dil ile Analiz Talebi</Title>
+            <Paragraph type="secondary">
+                Veri setinizle ilgili neyi merak ettiğinizi yazın. Örneğin: "Her bir 'Item' için ortalama 'Cost' değerini gösteren bir bar grafik oluştur."
+            </Paragraph>
+            <Input.TextArea
+                rows={4}
+                placeholder="Analiz talebinizi buraya yazın..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                style={{ marginBottom: 16 }}
+            />
+            
+            <div style={{textAlign: 'right'}}>
+                <Button 
+                    type="primary" 
+                    size="large" 
+                    icon={<RobotOutlined />} 
+                    onClick={handleStartAnalysis}
+                    loading={isAnalyzing}
+                >
+                    Yapay Zeka Analizini Başlat
+                </Button>
+            </div>
 
           <Divider />
-          <div style={{textAlign: 'right'}}>
-            <Button 
-                type="primary" 
-                size="large" 
-                icon={<RobotOutlined />} 
-                onClick={handleStartAnalysis}
-                loading={isAnalyzing}
-            >
-                Yapay Zeka Analizini Başlat
-            </Button>
-          </div>
+
+          <Title level={4} style={{marginTop: 24}}>Veri Önizleme</Title>
+          <Table 
+            columns={columns} 
+            dataSource={dataSource} 
+            pagination={false} 
+            bordered 
+            scroll={{ x: true }}
+          />
 
         </div>
       </Content>
