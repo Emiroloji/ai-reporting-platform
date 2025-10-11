@@ -28,13 +28,11 @@ public class AiResult {
     private AiRequest request;
 
     @Column(name = "result_type")
-    private String resultType;
+    private String resultType; // 'advanced_analysis' gibi bir değer alacak
 
-    // PostgreSQL'deki JSONB tipini String olarak yönetmek için
-    // Hibernate'e özel bir anotasyon kullanıyoruz.
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "result_data", columnDefinition = "jsonb")
-    private String resultData;
+    private String resultData; // Python'dan gelen tüm JSON'ı burada saklayacağız
 
     @Column(name = "created_at", updatable = false)
     @Builder.Default

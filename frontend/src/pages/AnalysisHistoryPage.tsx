@@ -1,8 +1,25 @@
 // src/pages/AnalysisHistoryPage.tsx
 
 import React, { useEffect, useState } from 'react';
-import { Layout, Typography, Table, Tag, message, Breadcrumb, Modal, Spin, Button, Empty } from 'antd'; // Empty eklendi
 import { Link } from 'react-router-dom';
+import {
+  Layout,
+  Typography,
+  Table,
+  Tag,
+  message,
+  Breadcrumb,
+  Modal,
+  Spin,
+  Empty,
+  Card,
+  Col,
+  Row,
+  Statistic,
+  Button,
+  Space,
+  Popover
+} from 'antd';
 import { HomeOutlined, HistoryOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getAnalysisHistory, AnalysisRequest, getAnalysisResult, AnalysisResult } from '../services/aiService';
@@ -36,6 +53,7 @@ const AnalysisHistoryPage: React.FC = () => {
   const handleViewResult = async (requestId: number) => {
     setIsModalOpen(true);
     setModalLoading(true);
+    setModalContent(null); // Önceki içeriği temizle
     try {
       const result = await getAnalysisResult(requestId);
       setModalContent(result);
@@ -45,6 +63,11 @@ const AnalysisHistoryPage: React.FC = () => {
     } finally {
       setModalLoading(false);
     }
+  };
+  
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setModalContent(null);
   };
 
   const getStatusTag = (status: string) => {
@@ -84,11 +107,20 @@ const AnalysisHistoryPage: React.FC = () => {
       title: 'İşlemler',
       key: 'action',
       render: (_, record) => (
-        record.status === 'COMPLETED' ? (
-          <Button type="link" onClick={() => handleViewResult(record.id)}>
-            Sonucu Görüntüle
-          </Button>
-        ) : null
+        <Space>
+            {record.status === 'COMPLETED' && (
+              <Button type="link" onClick={() => handleViewResult(record.id)}>
+                Sonucu Görüntüle
+              </Button>
+            )}
+            {record.status === 'FAILED' && record.errorMessage && (
+                 <Popover content={record.errorMessage} title="Hata Detayı" trigger="click">
+                    <Button type="link" danger>
+                        Hata Detayı
+                    </Button>
+                </Popover>
+            )}
+        </Space>
       ),
     },
   ];
@@ -111,32 +143,73 @@ const AnalysisHistoryPage: React.FC = () => {
             dataSource={history}
             loading={loading}
             rowKey="id"
+            locale={{ emptyText: <Empty description="Görüntülenecek analiz geçmişi bulunmuyor." /> }}
           />
         </div>
       </Content>
       
       <Modal 
-        title="Analiz Sonucu" 
+        title="Detaylı Analiz Sonucu" 
         open={isModalOpen} 
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={handleCloseModal}
         footer={null}
-        width={800}
+        width={1000}
+        destroyOnClose // Modal kapandığında içindeki state'leri sıfırla
       >
         {modalLoading ? (
           <div style={{ textAlign: 'center', padding: '50px' }}>
             <Spin size="large" />
           </div>
+        ) : modalContent ? (
+          <div>
+            <Title level={4}>Genel İstatistikler</Title>
+            <Row gutter={16} style={{ marginBottom: 24 }}>
+              <Col span={6}>
+                <Card><Statistic title="Toplam Satır" value={modalContent.insights.general_stats.row_count} /></Card>
+              </Col>
+              <Col span={6}>
+                <Card><Statistic title="Toplam Sütun" value={modalContent.insights.general_stats.column_count} /></Card>
+              </Col>
+              <Col span={6}>
+                <Card><Statistic title="Eksik Veri (Hücre)" value={modalContent.insights.general_stats.missing_cells} /></Card>
+              </Col>
+               <Col span={6}>
+                <Card><Statistic title="Eksik Veri Oranı" value={modalContent.insights.general_stats.missing_cells_percentage.toFixed(2)} suffix="%"/></Card>
+              </Col>
+            </Row>
+
+            <Title level={4}>Grafikler</Title>
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              {Object.keys(modalContent.charts).length > 0 ? (
+                Object.entries(modalContent.charts).map(([title, base64Image]) => (
+                  <Col key={title} xs={24} md={12}>
+                    <Card title={title.replace(/_/g, ' ').replace(/(^\w)/, c => c.toUpperCase())}>
+                      <img src={`data:image/png;base64,${base64Image}`} alt={title} style={{ width: '100%' }} />
+                    </Card>
+                  </Col>
+                ))
+              ) : (
+                <Col span={24}>
+                  <Empty description="Bu veri seti için uygun grafik oluşturulamadı." />
+                </Col>
+              )}
+            </Row>
+
+            <Title level={4}>Örnek Veri</Title>
+            <Table
+              dataSource={modalContent.sample_data}
+              columns={
+                modalContent.sample_data.length > 0
+                  ? Object.keys(modalContent.sample_data[0]).map(key => ({ title: key, dataIndex: key, key, ellipsis: true }))
+                  : []
+              }
+              pagination={false}
+              scroll={{ x: true }}
+              rowKey={(record, index) => index!}
+            />
+          </div>
         ) : (
-          // *** DÜZELTİLEN KISIM ***
-          // modalContent.resultData'nın dolu olup olmadığını kontrol ediyoruz.
-          (modalContent && modalContent.resultData) ? (
-            <pre style={{ background: '#f6f8fa', padding: '16px', borderRadius: '4px', whiteSpace: 'pre-wrap', maxHeight: '60vh', overflow: 'auto' }}>
-              {JSON.stringify(JSON.parse(modalContent.resultData), null, 2)}
-            </pre>
-          ) : (
-            // Eğer resultData boş ise, bir uyarı mesajı gösteriyoruz.
-            <Empty description="Bu analiz için görüntülenecek bir sonuç bulunamadı." />
-          )
+          <Empty description="Bu analiz için görüntülenecek bir sonuç bulunamadı." />
         )}
       </Modal>
     </Layout>

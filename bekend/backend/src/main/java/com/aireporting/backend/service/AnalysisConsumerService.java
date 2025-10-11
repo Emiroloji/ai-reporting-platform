@@ -50,13 +50,11 @@ public class AnalysisConsumerService {
         try {
             // 2. Python AI servisine dosyayı gönderip sonucu alıyoruz.
             String resultJson = aiAnalysisService.sendFileToPythonAI(fileId);
-            log.info("Analiz tamamlandı. fileId={}, Sonuç alınıyor...", fileId);
 
-            // 3. Başarılı olursa, sonucu yeni bir AiResult nesnesi olarak oluşturuyoruz.
             AiResult result = AiResult.builder()
                     .request(request)
-                    .resultType("basic_analysis")
-                    .resultData(resultJson) // Python'dan gelen JSON string'ini direkt kaydediyoruz.
+                    .resultType("advanced_analysis") // Türü güncelledik
+                    .resultData(resultJson)
                     .build();
             aiResultRepository.save(result);
 

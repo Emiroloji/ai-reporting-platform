@@ -13,10 +13,17 @@ export interface AnalysisRequest {
 }
 
 export interface AnalysisResult {
-  id: number;
-  resultType: string;
-  resultData: string; // JSON verisi string olarak gelecek
-  createdAt: string;
+  insights: {
+    general_stats: {
+      row_count: number;
+      column_count: number;
+      missing_cells: number;
+      missing_cells_percentage: number;
+    };
+    column_analysis: Record<string, any>;
+  };
+  charts: Record<string, string>; // Anahtar: grafik adı, Değer: base64 string
+  sample_data: any[];
 }
 
 
@@ -49,7 +56,9 @@ export const getAnalysisHistory = async (): Promise<AnalysisRequest[]> => {
 export const getAnalysisResult = async (requestId: number): Promise<AnalysisResult> => {
   try {
     const response = await api.get(`/api/ai/result/${requestId}`);
-    return response.data;
+    // Gelen JSON string'ini JavaScript nesnesine çeviriyoruz
+    const resultData = JSON.parse(response.data.resultData);
+    return resultData;
   } catch (error: any) {
     console.error('Analiz sonucu getirilirken hata:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Analiz sonucu getirilemedi.');
