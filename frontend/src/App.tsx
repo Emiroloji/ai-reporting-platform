@@ -2,32 +2,28 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Sayfalarımızı import ediyoruz
+import MainLayout from './components/layout/MainLayout';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import FilesPage from './pages/FilesPage';
 import FileDetailPage from './pages/FileDetailPage';
 import AnalysisHistoryPage from './pages/AnalysisHistoryPage';
-import FilesPage from './pages/FilesPage'; // "Dosyalarım" sayfası
-
-// Korumalı rota ve ana layout component'lerini import ediyoruz
-import ProtectedRoute from './components/ProtectedRoute';
-import MainLayout from './components/layout/MainLayout';
+import TeamPage from './pages/TeamPage'; // YENİ SAYFAYI IMPORT ETTİK
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Herkese açık rotalar */}
+        {/* Redirect from root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-
-        {/* Ana dizine gidilirse otomatik olarak dashboard'a yönlendir */}
-        <Route path="/" element={<Navigate to="/dashboard" />} />
-
-        {/* Korumalı (sadece giriş yapmış kullanıcıların erişebileceği) rotalar */}
-        {/* Bu rotalar artık MainLayout içinde render edilecek */}
+        
+        {/* Protected app routes */}
         <Route 
           element={
             <ProtectedRoute>
@@ -39,9 +35,7 @@ function App() {
           <Route path="/files" element={<FilesPage />} />
           <Route path="/files/:fileId" element={<FileDetailPage />} />
           <Route path="/history" element={<AnalysisHistoryPage />} />
-          {/* Gelecekte eklenecek diğer sayfalar için örnek rotalar */}
-          {/* <Route path="/reports" element={<ReportsPage />} /> */}
-          {/* <Route path="/settings" element={<SettingsPage />} /> */}
+          <Route path="/team" element={<TeamPage />} /> {/* YENİ ROTAYI EKLEDİK */}
         </Route>
       </Routes>
     </Router>

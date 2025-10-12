@@ -11,5 +11,7 @@ public interface UploadedFileRepository extends JpaRepository<UploadedFile, Long
    // List<UploadedFile> findByUserOrderByUploadedAtDesc(User user);
 
     List<UploadedFile> findByOrganizationOrderByUploadedAtDesc(Organization organization);
+    List<UploadedFile> findByOrganizationId(Long organizationId);
+
 
 }

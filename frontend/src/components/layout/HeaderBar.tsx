@@ -1,17 +1,16 @@
 // src/components/layout/HeaderBar.tsx
 
 import React, { useEffect, useState } from 'react';
-import { Layout, Avatar, Dropdown, Menu, Space, Typography, Badge, Button } from 'antd';
+import { Layout, Avatar, Dropdown, Menu, Space, Badge, Button } from 'antd';
 import { UserOutlined, LogoutOutlined, BellOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, UserProfile } from '../../services/userService';
 
 const { Header } = Layout;
-const { Text } = Typography;
 
 const HeaderBar: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [, setUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -24,23 +23,25 @@ const HeaderBar: React.FC = () => {
     };
     fetchUser();
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    navigate('/login', { replace: true });
+  
+  const handleMenuClick = ({ key }: { key: string }) => {
+    if (key === 'logout') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      navigate('/login', { replace: true });
+    } else if (key === 'profile') {
+      navigate('/profile');
+    }
   };
 
   const menu = (
-    <Menu>
-      <Menu.Item key="profile">
-        <UserOutlined />
-        <span>Profilim</span>
+    <Menu onClick={handleMenuClick}>
+      <Menu.Item key="profile" icon={<UserOutlined />}>
+        Profilim
       </Menu.Item>
       <Menu.Divider />
-      <Menu.Item key="logout" onClick={handleLogout}>
-        <LogoutOutlined />
-        <span>Çıkış Yap</span>
+      <Menu.Item key="logout" icon={<LogoutOutlined />} danger>
+        Çıkış Yap
       </Menu.Item>
     </Menu>
   );
@@ -63,7 +64,6 @@ const HeaderBar: React.FC = () => {
                 <BellOutlined style={{ fontSize: '20px' }} />
             </Badge>
             <Dropdown overlay={menu} trigger={['click']}>
-                {/* HATA DÜZELTMESİ: a etiketine href ekleyerek uyarıyı gideriyoruz. */}
                 <a href="#!" onClick={(e) => e.preventDefault()} style={{display: 'flex', alignItems: 'center'}}>
                     <Space>
                         <Avatar icon={<UserOutlined />} />
