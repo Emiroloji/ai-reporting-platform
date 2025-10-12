@@ -6,7 +6,6 @@ import { Button, Form, Input, message } from 'antd';
 import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import { register } from '../services/authService';
 
-// Form alanlarının tiplerini tanımlıyoruz.
 type FieldType = {
   firstName?: string;
   lastName?: string;
@@ -24,7 +23,7 @@ const RegisterForm: React.FC = () => {
     try {
       await register(values.firstName, values.lastName, values.email, values.password);
       message.success('Kayıt başarılı! Lütfen giriş yapın.');
-      navigate('/login'); // Başarılı kayıt sonrası login sayfasına yönlendir.
+      navigate('/login');
     } catch (error: any) {
       message.error(error.message || 'Kayıt başarısız. Lütfen tekrar deneyin.');
     } finally {
@@ -35,42 +34,37 @@ const RegisterForm: React.FC = () => {
   return (
     <Form name="register" onFinish={onFinish} layout="vertical" autoComplete="off">
       <Form.Item<FieldType>
-        label="Ad"
         name="firstName"
         rules={[{ required: true, message: 'Lütfen adınızı girin!' }]}
       >
-        <Input prefix={<UserOutlined />} placeholder="Adınız" size="large" />
+        <Input prefix={<UserOutlined />} placeholder="Adınız" style={{ borderRadius: 25 }} />
       </Form.Item>
 
       <Form.Item<FieldType>
-        label="Soyad"
         name="lastName"
         rules={[{ required: true, message: 'Lütfen soyadınızı girin!' }]}
       >
-        <Input prefix={<UserOutlined />} placeholder="Soyadınız" size="large" />
+        <Input prefix={<UserOutlined />} placeholder="Soyadınız" style={{ borderRadius: 25 }} />
       </Form.Item>
 
       <Form.Item<FieldType>
-        label="E-posta Adresi"
         name="email"
         rules={[
           { required: true, message: 'Lütfen e-posta adresinizi girin!' },
           { type: 'email', message: 'Geçerli bir e-posta adresi girin!' },
         ]}
       >
-        <Input prefix={<MailOutlined />} placeholder="ornek@mail.com" size="large" />
+        <Input prefix={<MailOutlined />} placeholder="E-posta Adresiniz" style={{ borderRadius: 25 }} />
       </Form.Item>
 
       <Form.Item<FieldType>
-        label="Şifre"
         name="password"
         rules={[{ required: true, message: 'Lütfen şifrenizi girin!' }]}
       >
-        <Input.Password prefix={<LockOutlined />} placeholder="Şifreniz" size="large" />
+        <Input.Password prefix={<LockOutlined />} placeholder="Şifreniz" style={{ borderRadius: 25 }} />
       </Form.Item>
 
       <Form.Item<FieldType>
-        label="Şifre Tekrar"
         name="confirmPassword"
         dependencies={['password']}
         rules={[
@@ -85,11 +79,11 @@ const RegisterForm: React.FC = () => {
           }),
         ]}
       >
-        <Input.Password prefix={<LockOutlined />} placeholder="Şifrenizi tekrar girin" size="large" />
+        <Input.Password prefix={<LockOutlined />} placeholder="Şifrenizi tekrar girin" style={{ borderRadius: 25 }} />
       </Form.Item>
 
-      <Form.Item>
-        <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+      <Form.Item style={{ marginTop: 24 }}>
+        <Button type="primary" htmlType="submit" block loading={loading} style={{ borderRadius: 25 }}>
           Kayıt Ol
         </Button>
       </Form.Item>
