@@ -1,83 +1,69 @@
 // src/pages/DashboardPage.tsx
 
-import React, { useState } from 'react';
-import { Layout, Typography, Button, Divider, Space } from 'antd';
-import { useNavigate, Link } from 'react-router-dom';
-import { LogoutOutlined, HistoryOutlined } from '@ant-design/icons';
-import FileList from '../components/FileList';
-import FileUpload from '../components/FileUpload';
+import React from 'react';
+import { Typography, Row, Col, Card, Statistic, Button, Space } from 'antd';
+import { FileDoneOutlined, LineChartOutlined, CreditCardOutlined, UploadOutlined, HistoryOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 
-const { Header, Content } = Layout;
 const { Title, Paragraph } = Typography;
 
 const DashboardPage: React.FC = () => {
-  const navigate = useNavigate();
-  
-  // Bu state, FileUpload başarılı olduğunda FileList'in yenilenmesini tetikler.
-  const [refreshKey, setRefreshKey] = useState(0);
+    const navigate = useNavigate();
 
-  // Bu fonksiyon, FileUpload component'inden çağrılır.
-  const handleUploadSuccess = () => {
-    // refreshKey'i güncelleyerek FileList'in yeniden veri çekmesini sağlarız.
-    setRefreshKey(prevKey => prevKey + 1);
-  };
+    return (
+        <>
+            <Title level={2}>Genel Bakış</Title>
+            <Paragraph type="secondary">
+                Platformunuza hoş geldiniz. İşte hesap özetiniz ve hızlı başlangıç adımları.
+            </Paragraph>
 
-  const handleLogout = () => {
-    // Kullanıcı bilgilerini tarayıcı hafızasından temizle
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    // Kullanıcıyı login sayfasına yönlendir
-    navigate('/login', { replace: true });
-  };
+            {/* İstatistik Kartları */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                <Col xs={24} sm={12} md={8}>
+                    <Card>
+                        <Statistic
+                            title="Tamamlanan Analizler"
+                            value={12}
+                            prefix={<LineChartOutlined />}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                    <Card>
+                        <Statistic
+                            title="Yüklenen Dosya Sayısı"
+                            value={5}
+                            prefix={<FileDoneOutlined />}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} md={8}>
+                    <Card>
+                        <Statistic
+                            title="Kalan Kredi"
+                            value={88}
+                            prefix={<CreditCardOutlined />}
+                        />
+                    </Card>
+                </Col>
+            </Row>
 
-  return (
-    <Layout style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-      <Header style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          backgroundColor: '#fff',
-          borderBottom: '1px solid #f0f0f0'
-        }}
-      >
-        <Title level={4} style={{ margin: 0 }}>AI Raporlama Platformu</Title>
-        <Space>
-          {/* Analiz Geçmişi Sayfasına Yönlendirme Butonu/Linki */}
-          <Link to="/history">
-            <Button icon={<HistoryOutlined />}>
-              Analiz Geçmişi
-            </Button>
-          </Link>
-          {/* Çıkış Yap Butonu */}
-          <Button 
-            type="primary" 
-            icon={<LogoutOutlined />} 
-            onClick={handleLogout}
-          >
-            Çıkış Yap
-          </Button>
-        </Space>
-      </Header>
-      <Content style={{ padding: '24px 50px' }}>
-        <div style={{ background: '#fff', padding: 24, minHeight: 280, borderRadius: '8px' }}>
-          
-          <Title level={2}>Dosyalarım</Title>
-          <Paragraph>
-            Analiz etmek için yeni bir dosya yükleyin veya daha önce yüklediğiniz dosyalar üzerinden işlem yapın.
-          </Paragraph>
-          
-          {/* Dosya Yükleme Component'i */}
-          <FileUpload onUploadSuccess={handleUploadSuccess} />
-          
-          <Divider />
+            {/* Hızlı Aksiyonlar */}
+            <Title level={4}>Hızlı Aksiyonlar</Title>
+            <Card>
+                <Space wrap size="large">
+                    <Button type="primary" icon={<UploadOutlined />} size="large" onClick={() => navigate('/files')}>
+                        Yeni Dosya Yükle
+                    </Button>
+                    <Button icon={<HistoryOutlined />} size="large" onClick={() => navigate('/history')}>
+                        Analiz Geçmişini Görüntüle
+                    </Button>
+                </Space>
+            </Card>
 
-          {/* Dosya Listesi Component'i. 'key' prop'u değiştiğinde yeniden render olur. */}
-          <FileList key={refreshKey} />
-
-        </div>
-      </Content>
-    </Layout>
-  );
+            {/* Buraya son aktiviteler veya son dosyalar listesi eklenebilir */}
+        </>
+    );
 };
 
 export default DashboardPage;

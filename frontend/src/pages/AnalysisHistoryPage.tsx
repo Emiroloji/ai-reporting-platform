@@ -1,14 +1,11 @@
 // src/pages/AnalysisHistoryPage.tsx
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  Layout,
   Typography,
   Table,
   Tag,
   message,
-  Breadcrumb,
   Modal,
   Spin,
   Empty,
@@ -17,14 +14,12 @@ import {
   Row,
   Statistic,
   Button,
-  Popover, // Popover'ı import ediyoruz
+  Popover,
   Space
 } from 'antd';
-import { HomeOutlined, HistoryOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getAnalysisHistory, AnalysisRequest, getAnalysisResult, AnalysisResult } from '../services/aiService';
 
-const { Content } = Layout;
 const { Title, Paragraph } = Typography;
 
 const AnalysisHistoryPage: React.FC = () => {
@@ -126,27 +121,15 @@ const AnalysisHistoryPage: React.FC = () => {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
-      <Content style={{ padding: '24px 50px' }}>
-        <Breadcrumb style={{ marginBottom: 16 }}>
-          <Breadcrumb.Item>
-            <Link to="/dashboard"><HomeOutlined /><span> Ana Sayfa</span></Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item>
-            <HistoryOutlined /><span> Analiz Geçmişi</span>
-          </Breadcrumb.Item>
-        </Breadcrumb>
-        <div style={{ background: '#fff', padding: 24, borderRadius: '8px' }}>
-          <Title level={2}>Analiz Geçmişi</Title>
-          <Table
-            columns={columns}
-            dataSource={history}
-            loading={loading}
-            rowKey="id"
-            locale={{ emptyText: <Empty description="Görüntülenecek analiz geçmişi bulunmuyor." /> }}
-          />
-        </div>
-      </Content>
+    <>
+      <Title level={2}>Analiz Geçmişi</Title>
+      <Table
+        columns={columns}
+        dataSource={history}
+        loading={loading}
+        rowKey="id"
+        locale={{ emptyText: <Empty description="Görüntülenecek analiz geçmişi bulunmuyor." /> }}
+      />
       
       <Modal 
         title="Detaylı Analiz Sonucu" 
@@ -162,7 +145,6 @@ const AnalysisHistoryPage: React.FC = () => {
           </div>
         ) : modalContent ? (
           <div>
-            {/* DÜZELTME: Doğal dil sorgusu sonucu varsa göster */}
             {modalContent.custom_analysis && (
               <Card title={modalContent.custom_analysis.title || "Özel Analiz Sonucu"} style={{marginBottom: 24}}>
                 {modalContent.custom_analysis.type === 'chart' ? (
@@ -174,7 +156,6 @@ const AnalysisHistoryPage: React.FC = () => {
             )}
 
             <Title level={4}>Genel İstatistikler</Title>
-            {/* DÜZELTME: `base_analysis` üzerinden erişim */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
               <Col span={6}>
                 <Card><Statistic title="Toplam Satır" value={modalContent.base_analysis.insights.general_stats.row_count} /></Card>
@@ -191,7 +172,6 @@ const AnalysisHistoryPage: React.FC = () => {
             </Row>
 
             <Title level={4}>Otomatik Grafikler</Title>
-            {/* DÜZELTME: `base_analysis` üzerinden erişim */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               {Object.keys(modalContent.base_analysis.charts).length > 0 ? (
                 Object.entries(modalContent.base_analysis.charts).map(([title, base64Image]) => (
@@ -209,7 +189,6 @@ const AnalysisHistoryPage: React.FC = () => {
             </Row>
 
             <Title level={4}>Örnek Veri</Title>
-            {/* DÜZELTME: `base_analysis` üzerinden erişim */}
             <Table
               dataSource={modalContent.base_analysis.sample_data}
               columns={
@@ -226,7 +205,7 @@ const AnalysisHistoryPage: React.FC = () => {
           <Empty description="Bu analiz için görüntülenecek bir sonuç bulunamadı." />
         )}
       </Modal>
-    </Layout>
+    </>
   );
 };
 

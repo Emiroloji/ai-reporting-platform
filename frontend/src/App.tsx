@@ -8,10 +8,12 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import FileDetailPage from './pages/FileDetailPage';
-import AnalysisHistoryPage from './pages/AnalysisHistoryPage'; // History sayfasını import ediyoruz
+import AnalysisHistoryPage from './pages/AnalysisHistoryPage';
+import FilesPage from './pages/FilesPage'; // "Dosyalarım" sayfası
 
-// Korumalı rotamız için component'i import ediyoruz
+// Korumalı rota ve ana layout component'lerini import ediyoruz
 import ProtectedRoute from './components/ProtectedRoute';
+import MainLayout from './components/layout/MainLayout';
 
 function App() {
   return (
@@ -20,36 +22,27 @@ function App() {
         {/* Herkese açık rotalar */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        
+
+        {/* Ana dizine gidilirse otomatik olarak dashboard'a yönlendir */}
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+
         {/* Korumalı (sadece giriş yapmış kullanıcıların erişebileceği) rotalar */}
+        {/* Bu rotalar artık MainLayout içinde render edilecek */}
         <Route 
-          path="/dashboard" 
           element={
             <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/files/:fileId"
-          element={
-            <ProtectedRoute>
-              <FileDetailPage />
+              <MainLayout />
             </ProtectedRoute>
           }
-        />
-        {/* EKSİK OLAN ROTA BURASI */}
-        <Route 
-          path="/history" 
-          element={
-            <ProtectedRoute>
-              <AnalysisHistoryPage />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* Ana dizine gidilirse otomatik olarak login sayfasına yönlendir */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        >
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/files" element={<FilesPage />} />
+          <Route path="/files/:fileId" element={<FileDetailPage />} />
+          <Route path="/history" element={<AnalysisHistoryPage />} />
+          {/* Gelecekte eklenecek diğer sayfalar için örnek rotalar */}
+          {/* <Route path="/reports" element={<ReportsPage />} /> */}
+          {/* <Route path="/settings" element={<SettingsPage />} /> */}
+        </Route>
       </Routes>
     </Router>
   );
