@@ -63,7 +63,10 @@ const TeamPage: React.FC = () => {
     const handleInvite = async (values: { email: string; role: string }) => {
         try {
             await inviteUser(values.email, values.role);
-            message.success(`${values.email} adresine davet gönderildi.`);
+            
+            // Artık şifre beklemiyoruz, sadece genel bir başarı mesajı gösteriyoruz.
+            message.success(`${values.email} adresine bir davet e-postası gönderildi. Lütfen e-posta kutusunu kontrol etmesini isteyin.`);
+            
             setIsModalOpen(false);
             form.resetFields();
             fetchMembers(); // Tabloyu yenile

@@ -1,5 +1,3 @@
-// src/main/java/com/aireporting/backend/security/CustomUserDetailsService.java
-
 package com.aireporting.backend.security;
 
 import com.aireporting.backend.entity.User;
@@ -25,13 +23,17 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        // Kullanıcının rolünü alıp bir "yetki" listesi oluşturuyoruz.
         List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
 
-        // Spring Security'nin anlayacağı standart UserDetails nesnesini döndürüyoruz.
+        // GÜVENLİK İYİLEŞTİRMESİ: Spring Security'nin User nesnesini oluştururken
+        // veritabanındaki "isActive" durumunu dikkate almasını sağlıyoruz.
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
+                user.getIsActive(), // <-- Bu satır eklendi
+                true, // accountNonExpired
+                true, // credentialsNonExpired
+                true, // accountNonLocked
                 authorities
         );
     }
