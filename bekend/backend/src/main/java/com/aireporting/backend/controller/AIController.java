@@ -19,7 +19,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,33 +26,40 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/ai")
-@RequiredArgsConstructor
+@RequiredArgsConstructor // DÜZELTME: @Autowired yerine constructor injection kullanıyoruz.
 public class AIController {
 
     private final RabbitTemplate rabbitTemplate;
     private final AiRequestRepository aiRequestRepository;
-    private final UserRepository userRepository;
+    private final UserRepository userRepository; // DÜZELTME: UserService yerine UserRepository
     private final AiResultRepository aiResultRepository;
 
 
+    /**
+     * GÜNCELLENMİŞ Asenkron Analiz Başlatma Endpoint'i.
+     * Bu endpoint, analizi hemen başlatmak yerine RabbitMQ'ya bir istek mesajı bırakır.
+     */
     @PostMapping("/{fileId}/analyze")
     public ResponseEntity<?> analyzeFile(
             @PathVariable Long fileId,
-            @RequestBody(required = false) Map<String, String> payload // Sorguyu body'den alıyoruz
+            @RequestBody(required = false) Map<String, String> payload, // Hem 'query' hem de 'templateId' içerebilir
+            Authentication authentication
     ) {
         String query = (payload != null) ? payload.get("query") : null;
+        String templateId = (payload != null) ? payload.get("templateId") : null;
 
         // RabbitMQ'ya Map olarak gönderiyoruz
         Map<String, Object> message = new HashMap<>();
         message.put("fileId", fileId);
         message.put("query", query);
+        message.put("templateId", templateId); // YENİ
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.ANALYSIS_QUEUE, message);
-        return ResponseEntity.accepted().body("Analiz talebiniz alındı ve işleme konuldu.");
+
+        // Frontend'e Map<String, String> formatında bir yanıt gönderiyoruz.
+        return ResponseEntity.accepted().body(Map.of("message", "Analiz talebiniz alındı ve işleme konuldu."));
     }
 
-
-    // YENİ EKLENEN ENDPOINT
     @GetMapping("/history")
     public ResponseEntity<List<AiRequestDTO>> getAnalysisHistory(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -86,7 +92,6 @@ public class AIController {
         AiResult result = aiResultRepository.findByRequest(request)
                 .orElseThrow(() -> new RuntimeException("Result not found for this request"));
 
-        // Entity'yi DTO'ya çevirip gönderiyoruz.
         AiResultDTO resultDTO = new AiResultDTO(result);
 
         return ResponseEntity.ok(resultDTO);

@@ -6,7 +6,7 @@ import com.aireporting.backend.entity.AiRequest;
 import lombok.Data;
 import java.time.LocalDateTime;
 
-@Data
+@Data // Lombok ile getter/setter'ları otomatik oluşturur
 public class AiRequestDTO {
     private Long id;
     private String fileName;
@@ -15,6 +15,8 @@ public class AiRequestDTO {
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;
 
+    // HATA DÜZELTMESİ: Eksik olan constructor'ı ekliyoruz.
+    // Bu metot, bir AiRequest entity'sini alıp DTO'ya çevirir.
     public AiRequestDTO(AiRequest request) {
         this.id = request.getId();
         this.fileName = request.getFile().getFileName();

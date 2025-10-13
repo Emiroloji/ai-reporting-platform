@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map; // HATA DÜZELTMESİ: Eksik olan import ifadesi eklendi.
 
 @RestController
 @RequestMapping("/api/files")
@@ -32,14 +33,12 @@ public class FileController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         try {
             UploadedFile uploaded = fileService.uploadFile(user, file);
-            // Frontend'e tam entity yerine DTO döndürmek daha güvenlidir.
             return ResponseEntity.ok(new FileResponseDTO(uploaded));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Dosya yüklenemedi: " + e.getMessage());
         }
     }
 
-    // Kendi yüklediği dosyaları değil, organizasyonun dosyalarını listele
     @GetMapping("/my")
     public ResponseEntity<List<FileResponseDTO>> listMyFiles(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -48,9 +47,7 @@ public class FileController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // İş mantığı artık FileService'e taşındı.
         List<FileResponseDTO> fileDTOs = fileService.getFilesForOrganization(user.getOrganization());
-
         return ResponseEntity.ok(fileDTOs);
     }
 
@@ -63,9 +60,9 @@ public class FileController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         try {
             fileService.deleteFile(user, fileId);
-            return ResponseEntity.ok("Dosya başarıyla silindi.");
+            return ResponseEntity.ok(Map.of("message", "Dosya başarıyla silindi."));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Dosya silinemedi: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", "Dosya silinemedi: " + e.getMessage()));
         }
     }
 
