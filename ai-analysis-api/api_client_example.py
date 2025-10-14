@@ -44,19 +44,22 @@ def start_analysis(file_id, question, api_key):
         return
     print(f"'{file_id}' ID'li dosya için analiz başlatılıyor...")
     print(f"Soru: {question}")
-    url = f"{BASE_URL}/ai/request"
+
+    # --- DEĞİŞİKLİK BURADA ---
+    # Doğru URL formatını kullan: /api/ai/{file_id}/analyze
+    url = f"{BASE_URL}/ai/{file_id}/analyze" 
+
     headers = {
         "x-api-key": api_key,
         "Content-Type": "application/json"
     }
+    # Payload'ı 'query' olarak gönderiyoruz
     data = {
-        "fileId": file_id,
-        "question": question
+        "query": question 
     }
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=30) # Timeout eklendi
+        response = requests.post(url, headers=headers, json=data, timeout=30)
 
-        # HTTP hata kodlarını kontrol et
         response.raise_for_status()
 
         response_data = response.json()
