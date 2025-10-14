@@ -2,13 +2,21 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTG-RES_DB: aireporting
+      POSTGRES_DB: aireporting
       POSTGRES_USER: aireport
       POSTGRES_PASSWORD: aireport
     ports:
       - "5432:5432"
+    # --- YENİ EKLENEN BÖLÜM ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aireport -d aireporting"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # --------------------------
 
   rabbitmq:
+    # ... (rabbitmq ayarların aynı kalacak)
     image: rabbitmq:3.11-management
     environment:
       - RABBITMQ_DEFAULT_USER=user
@@ -28,25 +36,10 @@ services:
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: user
       SPRING_RABBITMQ_PASSWORD: password
-      # ÖNEMLİ: Bu satırı ekleyerek doğru API adresini veriyoruz.
-      AI_ANALYSIS_API_URL: http://ai-analysis-api:8000/analyze
+    # --- DEĞİŞTİRİLEN BÖLÜM ---
     depends_on:
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy # Artık servisin sağlıklı olmasını bekleyecek
+    # --------------------------
     ports:
       - "8080:8080"
-
-  # ---- EKSİK OLAN BÖLÜM ----
-  ai-analysis-api:
-    build:
-      # Context: Python API'sinin olduğu klasör
-      context: ./ai-analysis-api
-    # Komut: Servis başladığında FastAPI sunucusunu çalıştır
-    command: uvicorn analyze_server:app --host 0.0.0.0 --port 8000
-    # Port yönlendirmesi
-    ports:
-      - "8000:8000"
-    # Gerekli çevre değişkenleri (örnek, .env dosyasından da alabilir)
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_API_BASE=${OPENAI_API_BASE}
