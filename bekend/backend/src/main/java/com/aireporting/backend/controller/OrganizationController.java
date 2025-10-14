@@ -3,8 +3,10 @@ package com.aireporting.backend.controller;
 import com.aireporting.backend.dto.UserDTO; // UserDTO'yu import et
 import com.aireporting.backend.entity.User;
 import com.aireporting.backend.repository.UserRepository;
+import com.aireporting.backend.service.ApiKeyService;
 import com.aireporting.backend.service.OrganizationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,8 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
     private final UserRepository userRepository;
+    private final ApiKeyService apiKeyService;
+
 
     /**
      * Mevcut kullanıcının organizasyonundaki tüm üyeleri listeler.
@@ -67,5 +71,31 @@ public class OrganizationController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+
+    @GetMapping("/api-key")
+    public ResponseEntity<Map<String, String>> getApiKey(Authentication authentication) {
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+
+        String apiKey = currentUser.getOrganization().getApiKey();
+        return ResponseEntity.ok(Map.of("apiKey", apiKey));
+    }
+
+    /**
+     * Mevcut kullanıcının organizasyonu için yeni bir API anahtarı oluşturur.
+     */
+    @PostMapping("/api-key/regenerate")
+    public ResponseEntity<Map<String, String>> regenerateApiKey(Authentication authentication) {
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+
+        if (!currentUser.getOrganization().getOwner().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Sadece organizasyon sahibi API anahtarını yenileyebilir."));
+        }
+
+        String newApiKey = apiKeyService.regenerateApiKey(currentUser.getOrganization().getId());
+        return ResponseEntity.ok(Map.of("apiKey", newApiKey));
     }
 }

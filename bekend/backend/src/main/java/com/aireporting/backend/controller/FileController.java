@@ -7,6 +7,7 @@ import com.aireporting.backend.repository.UserRepository;
 import com.aireporting.backend.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,12 +33,21 @@ public class FileController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         try {
+            // HATA 1 DÜZELTİLDİ: 'storeFile' yerine 'uploadFile' çağrılıyor.
             UploadedFile uploaded = fileService.uploadFile(user, file);
-            return ResponseEntity.ok(new FileResponseDTO(uploaded));
+
+            // HATA 2 ve 3 DÜZELTİLDİ: DTO, doğrudan entity nesnesi kullanılarak oluşturuluyor.
+            FileResponseDTO responseDTO = new FileResponseDTO(uploaded);
+
+            // Önceki adımdaki düzeltmeyi de içeriyor: 201 Created döndürüyoruz.
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Dosya yüklenemedi: " + e.getMessage());
         }
     }
+
+
 
     @GetMapping("/my")
     public ResponseEntity<List<FileResponseDTO>> listMyFiles(Authentication authentication) {

@@ -34,12 +34,9 @@ const SidebarMenu: React.FC = () => {
 
             <Menu.Divider />
 
-            {/* <Menu.Item key="/settings" icon={<SettingOutlined />}>
-                <Link to="/settings">Ayarlar</Link>
+            <Menu.Item key="/settings" icon={<SettingOutlined />}>
+                <Link to="/settings">Ayarlar & API</Link>
             </Menu.Item>
-            <Menu.Item key="/logout" icon={<LogoutOutlined />}>
-                <Link to="/logout">Çıkış Yap</Link>
-            </Menu.Item> */}
         </Menu>
     );
 };

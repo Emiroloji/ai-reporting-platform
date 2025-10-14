@@ -1,13 +1,18 @@
 # 1. Adım: Kodu derlemek için bir Java ve Maven içeren bir imaj kullan
 FROM maven:3.9-eclipse-temurin-21 AS build
 
+# YENİ: Docker build ortamının karakter setini UTF-8'e zorla
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
 # Proje kodunu container içine kopyala
 WORKDIR /app
 COPY ./bekend/backend/pom.xml ./
 COPY ./bekend/backend/src ./src
 
 # Maven kullanarak projeyi derle ve JAR dosyasını oluştur
-RUN mvn clean package -DskipTests
+# YENİ: Maven komutuna da ayrıca karakter setini belirtiyoruz
+RUN mvn clean package -DskipTests -Dproject.build.sourceEncoding=UTF-8
 
 # 2. Adım: Sadece Java'nın çalışması için gerekli olan daha küçük bir imaj kullan
 FROM eclipse-temurin:21-jre-jammy

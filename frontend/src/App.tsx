@@ -10,7 +10,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import FilesPage from './pages/FilesPage';
 import FileDetailPage from './pages/FileDetailPage';
 import AnalysisHistoryPage from './pages/AnalysisHistoryPage';
-import TeamPage from './pages/TeamPage'; // YENİ SAYFAYI IMPORT ETTİK
+import TeamPage from './pages/TeamPage'; 
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -36,6 +37,8 @@ function App() {
           <Route path="/files/:fileId" element={<FileDetailPage />} />
           <Route path="/history" element={<AnalysisHistoryPage />} />
           <Route path="/team" element={<TeamPage />} /> {/* YENİ ROTAYI EKLEDİK */}
+          <Route path="/settings" element={<SettingsPage />} /> {/* YENİ ROTA */}
+
         </Route>
       </Routes>
     </Router>

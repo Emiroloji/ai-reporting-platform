@@ -44,3 +44,29 @@ export const removeUser = async (memberId: number): Promise<string> => {
     throw new Error(error.response?.data?.message || 'Kullanıcı organizasyondan çıkarılamadı.');
   }
 };
+
+/**
+ * Organizasyonun API anahtarını getirir.
+ */
+export const getApiKey = async (): Promise<{ apiKey: string }> => {
+  try {
+    const response = await api.get('/api/organization/api-key');
+    return response.data;
+  } catch (error: any) {
+    console.error('API anahtarı getirilirken hata:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'API anahtarı alınamadı.');
+  }
+};
+
+/**
+ * Organizasyon için yeni bir API anahtarı oluşturur.
+ */
+export const regenerateApiKey = async (): Promise<{ apiKey: string }> => {
+  try {
+    const response = await api.post('/api/organization/api-key/regenerate');
+    return response.data;
+  } catch (error: any) {
+    console.error('API anahtarı yenilenirken hata:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'API anahtarı yenilenemedi.');
+  }
+};
