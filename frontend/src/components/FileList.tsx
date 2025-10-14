@@ -18,11 +18,12 @@ const formatBytes = (bytes: number, decimals = 2) => {
 };
 
 // Dosya MIME tipine göre ilgili ikonu döndüren yardımcı fonksiyon
-const getFileIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return <FilePdfOutlined style={{ color: '#D93025' }} />;
-    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return <FileExcelOutlined style={{ color: '#188038' }} />;
-    if (fileType.includes('csv')) return <FileTextOutlined style={{ color: '#1A73E8' }} />;
-    return <FileOutlined />;
+const getFileIcon = (fileType: string | null | undefined) => {
+  if (!fileType) return <FileOutlined />; // null/undefined ise direkt ikon döndür
+  if (fileType.includes('pdf')) return <FilePdfOutlined style={{ color: '#D93025' }} />;
+  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return <FileExcelOutlined style={{ color: '#188038' }} />;
+  if (fileType.includes('csv')) return <FileTextOutlined style={{ color: '#1A73E8' }} />;
+  return <FileOutlined />;
 }
 
 const FileList: React.FC = () => {

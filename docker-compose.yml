@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: aireporting
+      POSTG-RES_DB: aireporting
       POSTGRES_USER: aireport
       POSTGRES_PASSWORD: aireport
     ports:
@@ -19,9 +19,7 @@ services:
 
   backend:
     build:
-      # Context: Projenin ana dizini
       context: .
-      # Dockerfile: docker klasörünün içindeki dosya
       dockerfile: ./docker/Dockerfile.backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aireporting
@@ -30,8 +28,25 @@ services:
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: user
       SPRING_RABBITMQ_PASSWORD: password
+      # ÖNEMLİ: Bu satırı ekleyerek doğru API adresini veriyoruz.
+      AI_ANALYSIS_API_URL: http://ai-analysis-api:8000/analyze
     depends_on:
       - postgres
       - rabbitmq
     ports:
       - "8080:8080"
+
+  # ---- EKSİK OLAN BÖLÜM ----
+  ai-analysis-api:
+    build:
+      # Context: Python API'sinin olduğu klasör
+      context: ./ai-analysis-api
+    # Komut: Servis başladığında FastAPI sunucusunu çalıştır
+    command: uvicorn analyze_server:app --host 0.0.0.0 --port 8000
+    # Port yönlendirmesi
+    ports:
+      - "8000:8000"
+    # Gerekli çevre değişkenleri (örnek, .env dosyasından da alabilir)
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE}

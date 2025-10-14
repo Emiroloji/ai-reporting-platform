@@ -42,6 +42,7 @@ public class AnalysisConsumerService {
     private final UserRepository userRepository;
     private final FileService fileService; // FileService'i de ekliyoruz.
 
+
     @Value("${ai.analysis.api.url:http://localhost:8000/analyze}") // Python API adresi (varsayılan değer ile)
     private String pythonApiUrl;
 
