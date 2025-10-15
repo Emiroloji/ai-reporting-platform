@@ -1,5 +1,10 @@
 fastapi
 uvicorn
 pandas
-python-multipart
 openpyxl
+python-dotenv
+openai
+matplotlib
+seaborn
+python-multipart
+scikit-learn

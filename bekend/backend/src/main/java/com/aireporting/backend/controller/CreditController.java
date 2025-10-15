@@ -22,7 +22,7 @@ public class CreditController {
     private final CreditTransactionRepository creditTransactionRepository;
     private final CreditService creditService;
 
-    // Kredi geçmişi
+
     @GetMapping("/history")
     public ResponseEntity<List<CreditTransaction>> getCreditHistory(Authentication authentication) {
         String email = authentication.getName();
@@ -32,7 +32,6 @@ public class CreditController {
         return ResponseEntity.ok(history);
     }
 
-    // Kullanıcı kendi kredisine yükleme yapar
     @PostMapping("/add")
     public ResponseEntity<?> addCredits(Authentication authentication, @RequestBody Map<String, Integer> credits) {
         String email = authentication.getName();
@@ -56,7 +55,6 @@ public class CreditController {
         return ResponseEntity.ok("Kredi başarıyla eklendi. Yeni kredi miktarı: " + user.getCredits());
     }
 
-    // Admin başka kullanıcıya kredi ekler
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/admin/add")
     public ResponseEntity<?> adminAddCredits(@RequestBody Map<String, Object> request) {

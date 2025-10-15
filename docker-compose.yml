@@ -7,16 +7,15 @@ services:
       POSTGRES_PASSWORD: aireport
     ports:
       - "5432:5432"
-    # --- YENİ EKLENEN BÖLÜM ---
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U aireport -d aireporting"]
       interval: 10s
       timeout: 5s
       retries: 5
-    # --------------------------
 
   rabbitmq:
-    # ... (rabbitmq ayarların aynı kalacak)
     image: rabbitmq:3.11-management
     environment:
       - RABBITMQ_DEFAULT_USER=user
@@ -24,6 +23,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    networks:
+      - app-network
 
   backend:
     build:
@@ -36,10 +37,29 @@ services:
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: user
       SPRING_RABBITMQ_PASSWORD: password
-    # --- DEĞİŞTİRİLEN BÖLÜM ---
+      AI_ANALYSIS_API_URL: http://ai-analysis-api:8000/analyze
     depends_on:
       postgres:
-        condition: service_healthy # Artık servisin sağlıklı olmasını bekleyecek
-    # --------------------------
+        condition: service_healthy
     ports:
       - "8080:8080"
+    networks:
+      - app-network
+
+  # --- EKSİK OLAN VE YENİDEN EKLENEN BÖLÜM ---
+  ai-analysis-api:
+    build:
+      context: ./ai-analysis-api
+    # API anahtarını okumak için .env dosyasını bağlıyoruz
+    env_file:
+      - ./ai-analysis-api/.env
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+  # ------------------------------------------
+
+# Tüm servislerin iletişim kuracağı ağı tanımlıyoruz
+networks:
+  app-network:
+    driver: bridge
